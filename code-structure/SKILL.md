@@ -85,18 +85,26 @@ When unsure, choose the smaller structure. Growing a small structure later is ch
 
 ### When Clean Architecture applies
 
+Folders, listed from the inside out:
+
 ```
 src/
-  domain/        types and pure rules; imports nothing from the folders below
-  application/   use cases; declares the ports (interfaces) it needs
-  adapters/      database, HTTP, outside APIs; implements the ports
-  main           builds the adapters and passes them in
+  exceptions/     error types; imports nothing
+  domain/         core types and pure rules; imports only exceptions
+  usecases/       one action per file; declares the repository interfaces it needs
+  repositories/   database and outside API code; implements those interfaces
+  models/         database row shapes; used only by repositories
+  controllers/    HTTP or CLI handlers; turn a request into a use case call
+  dto/            request and response shapes; used only by controllers
+  main            builds the repositories and passes them to the use cases
 ```
 
-- Imports point inward only: `adapters` → `application` → `domain`. The domain never imports a framework, a database driver, or an HTTP library.
-- Rule 1 still holds. The domain is the pure core, a port is a function type, and the adapters are the edge where the side effects live.
-- Add a layer only when it does real work. No interface with one implementation that crosses no I/O boundary, no use case that only forwards a call, no mapper between two types with the same fields.
-- Use the folder names the language expects (for example `internal/` in Go, packages in Java).
+- Imports point inward only: `controllers` → `usecases` → `domain`, and `repositories` → `usecases` → `domain`. The domain never imports a framework, a database driver, or an HTTP library. The folders sit side by side, so the tree does not show this direction: check the imports.
+- Rule 1 still holds. `domain` is the pure core, a repository interface is a function type, and `repositories` and `controllers` are the edge where the side effects live.
+- Add a type to `dto/` or `models/` only when its shape differs from the domain type (the API hides a field, the table stores it another way). When the fields are the same, use the domain type, and leave out a folder that would be empty.
+- Add a part only when it does real work. No interface with one implementation that crosses no I/O boundary, and no use case that only forwards a call.
+- When a folder passes about ten files, group by feature first (`orders/`, `users/`) and keep these folders inside each feature.
+- Use the names the language expects: `errors/` where errors are returned as values (Rust, Go), `internal/` in Go, packages in Java.
 
 ## Rule 3: Comments
 
